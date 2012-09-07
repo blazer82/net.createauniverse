@@ -1,15 +1,19 @@
 
 var U =
 {
-    canvas  : null,
-    context : null,
+    stage : null,
 
     init : function()
     {
-        U.canvas  = $('#universe canvas')[0];
-        U.context = U.canvas.getContext('2d');
+        var $universe = $('#universe');
 
-        log('Universe initialized with size '+U.canvas.width+'x'+U.canvas.height);
+        U.stage = new Kinetic.Stage({
+            container: "universe",
+            width: $universe.innerWidth(),
+            height: $universe.innerHeight()
+        });
+
+        log('Stage initialized with size '+U.stage.getWidth()+'x'+U.stage.getHeight());
     },
 
     run : function()
@@ -19,16 +23,33 @@ var U =
 
     drawCircle : function()
     {
-        var centerX = U.canvas.width / 2;
-        var centerY = U.canvas.height / 2;
-        var radius = 128;
+        var layer  = new Kinetic.Layer();
+        var circle = new Kinetic.Circle({
+          x: U.stage.getWidth() / 2,
+          y: U.stage.getHeight() / 2,
+          radius: 30,
+          fill: "red",
+          stroke: "black",
+          strokeWidth: 4
+        });
 
-        U.context.beginPath();
-        U.context.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
-        U.context.fillStyle = "#B91BE0";
-        U.context.fill();
-        U.context.lineWidth = 1;
-        U.context.strokeStyle = "black";
-        U.context.stroke();
+        // add the shape to the layer
+        layer.add(circle);
+
+        // add the layer to the stage
+        U.stage.add(layer);
+
+
+        var period = 2000;
+        var anim   = new Kinetic.Animation({
+          func: function(frame) {
+            var scale = Math.abs(Math.sin(frame.time * 5 / period)) + 0.5;
+            // scale x and y
+            circle.setScale(scale);
+          },
+          node: layer
+        });
+
+        anim.start();
     }
 };

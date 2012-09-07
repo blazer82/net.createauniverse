@@ -2,6 +2,7 @@
 #universe
 {
     width: 512px;
+    height: 512px;
     margin: 0 auto;
     border: 1px solid #000;
 }
