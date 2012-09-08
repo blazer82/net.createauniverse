@@ -1,9 +1,9 @@
 
 var Universe = function(elementId)
 {
-    this.particleSize  = 32;
-    this.gravityRadius = 4;
-    this.gravityFactor = 1;
+    this.particleSize  = 8;
+    this.gravityRadius = 16;
+    this.gravityFactor = .02;
 
     this.particles = [];
 
@@ -34,7 +34,7 @@ Universe.prototype.run = function()
 
 Universe.prototype.createNoise = function()
 {
-    this.particles = [];
+    this.clear();
 
     var noise  = new Noise();
 
@@ -61,13 +61,19 @@ Universe.prototype.createNoise = function()
 Universe.prototype.render = function()
 {
     this.stage.clear();
-    this.layer.clear();
     this.layer.draw();
+}
+
+Universe.prototype.clear = function()
+{
+    this.stage.clear();
+    this.layer.removeChildren();
+    this.particles = [];
 }
 
 Universe.prototype.nextFrame = function()
 {
-    this.updateParticlesArray();
+    log('next frame');
 
     for (var y = 0; y < this.size.height; y++)
     {
@@ -114,7 +120,21 @@ Universe.prototype.nextFrame = function()
 
             if (!particle) continue;
 
-            particle.render();
+            particle.applyForce();
+        }
+    }
+
+    this.updateParticlesArray();
+
+    for (var y = 0; y < this.size.height; y++)
+    {
+        for (var x = 0; x < this.size.width; x++)
+        {
+            var particle = this.particles[y][x];
+
+            if (!particle) continue;
+
+            particle.render(this.particleSize >= 16);
         }
     }
 
@@ -141,11 +161,28 @@ Universe.prototype.updateParticlesArray = function()
         {
             var particle = this.particles[y][x];
 
-            if (particle && particle.x > 0 && particle.y > 0 && this.size.width > particle.x && this.size.height > particle.y)
+            if (particle)
             {
-                if (particles[particle.y][particle.x])
+                if (particle.x < 0 || particle.y < 0 || this.size.width <= particle.x || this.size.height <= particle.y)
                 {
-                    particles[particle.y][particle.x].mass += particle.mass;
+                    // out of stage
+                    particle.destroy();
+                }
+                else if (particles[particle.y][particle.x])
+                {
+                    // got eaten
+
+                    if (particles[particle.y][particle.x].mass > particle.mass)
+                    {
+                        particles[particle.y][particle.x].mass += particle.mass;
+                        particle.destroy();
+                    }
+                    else
+                    {
+                        particle.mass += particles[particle.y][particle.x].mass;
+                        particles[particle.y][particle.x].destroy();
+                        particles[particle.y][particle.x] = particle;
+                    }
                 }
                 else
                 {
@@ -176,16 +213,36 @@ var Particle = function(x, y, mass, size)
     this.render();
 };
 
-Particle.prototype.render = function()
+Particle.prototype.applyForce = function()
 {
     this.x = Math.round(this.x + this.force.x);
     this.y = Math.round(this.y + this.force.y);
+};
 
+Particle.prototype.render = function(animate)
+{
     this.shape.setFill(this.computeColor());
 
     var stagePos = this.computeStagePosition();
-    this.shape.setPosition(stagePos.x, stagePos.y);
+
+    if (animate)
+    {
+        this.shape.transitionTo({
+            x        : stagePos.x,
+            y        : stagePos.y,
+            duration : 1
+        });
+    }
+    else
+    {
+        this.shape.setPosition(stagePos.x, stagePos.y);
+    }
 };
+
+Particle.prototype.destroy = function()
+{
+    this.shape.hide();
+}
 
 Particle.prototype.computeStagePosition = function()
 {
@@ -197,5 +254,12 @@ Particle.prototype.computeColor = function()
     var r = Math.floor(this.mass * 106);
     var g = Math.floor(this.mass * 27);
     var b = Math.floor(this.mass * 224);
+
+    r = Math.min(r, 255);
+    g = Math.min(g, 255);
+    b = Math.min(b, 255);
+
+    if (r > 255 || g > 255 || b > 255) log('color alert!');
+
     return 'rgb('+r+','+g+','+b+')';
 };
