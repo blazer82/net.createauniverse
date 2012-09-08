@@ -16,16 +16,14 @@ var Universe = function(elementId)
 
     log('Universe initialized with size '+this.size.width+'x'+this.size.height);
 
-    this.stage = new Kinetic.Stage({
-        container: elementId,
-        width: $universe.innerWidth(),
-        height: $universe.innerHeight()
-    });
+    this.canvas = document.createElement('canvas');
+    this.canvas.width = $universe.innerWidth();
+    this.canvas.height = $universe.innerHeight();
+    $universe.append(this.canvas);
 
-    this.layer = new Kinetic.Layer();
-    this.stage.add(this.layer);
+    this.context = this.canvas.getContext('2d');
 
-    log('Stage initialized with size '+this.stage.getWidth()+'x'+this.stage.getHeight());
+    log('Context initialized with size '+this.canvas.width+'x'+this.canvas.height);
 };
 
 Universe.prototype.createNoise = function()
@@ -45,7 +43,6 @@ Universe.prototype.createNoise = function()
             //log(mass);
 
             var particle = new Particle(x, y, mass, this.particleSize);
-            this.layer.add(particle.shape);
 
             this.particles[y][x] = particle;
         }
@@ -56,14 +53,30 @@ Universe.prototype.createNoise = function()
 
 Universe.prototype.render = function()
 {
-    this.stage.clear();
-    this.layer.draw();
+    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    for (var y = 0; y < this.size.height; y++)
+    {
+        for (var x = 0; x < this.size.width; x++)
+        {
+            var particle = this.particles[y][x];
+
+            if (!particle) continue;
+
+            var stagePos = particle.computeStagePosition();
+            var color    = particle.computeColor();
+
+            this.context.beginPath();
+            this.context.rect(stagePos.x, stagePos.y, particle.size, particle.size);
+            this.context.fillStyle = color;
+            this.context.fill();
+        }
+    }
 };
 
 Universe.prototype.clear = function()
 {
-    this.stage.clear();
-    this.layer.removeChildren();
+    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.particles = [];
 };
 
@@ -106,7 +119,7 @@ Universe.prototype.computeGravitationalField = function()
                     var vecLength = Math.abs(forceVec.x) + Math.abs(forceVec.y);
                     if (vecLength > this.gravityRadius) continue;
 
-                    var g = particle.mass * this.gravityFactor * (vecLength / Math.pow(vecLength, 2));
+                    var g = particle.mass * this.gravityFactor * (vecLength / (vecLength*vecLength));
 
                     affectedY = ry;
                     affectedX = rx;
@@ -149,18 +162,6 @@ Universe.prototype.nextFrame = function()
     }
 
     this.updateParticlesArray();
-
-    for (var y = 0; y < this.size.height; y++)
-    {
-        for (var x = 0; x < this.size.width; x++)
-        {
-            var particle = this.particles[y][x];
-
-            if (!particle) continue;
-
-            particle.render(this.particleSize >= 64);
-        }
-    }
 
     this.render();
 };
@@ -228,14 +229,6 @@ var Particle = function(x, y, mass, size)
     this.mass  = mass;
     this.size  = size;
     this.force = {x: 0, y: 0};
-
-    this.shape = new Kinetic.Rect({
-        width       : this.size,
-        height      : this.size,
-        strokeWidth : 0
-    });
-
-    this.render();
 };
 
 Particle.prototype.applyForce = function()
@@ -244,29 +237,8 @@ Particle.prototype.applyForce = function()
     this.y = Math.round(this.y + this.force.y);
 };
 
-Particle.prototype.render = function(animate)
-{
-    this.shape.setFill(this.computeColor());
-
-    var stagePos = this.computeStagePosition();
-
-    if (animate)
-    {
-        this.shape.transitionTo({
-            x        : stagePos.x,
-            y        : stagePos.y,
-            duration : 1
-        });
-    }
-    else
-    {
-        this.shape.setPosition(stagePos.x, stagePos.y);
-    }
-};
-
 Particle.prototype.destroy = function()
 {
-    this.shape.hide();
 };
 
 Particle.prototype.computeStagePosition = function()
