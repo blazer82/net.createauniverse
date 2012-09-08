@@ -1,7 +1,9 @@
 
 var U =
 {
-    stage : null,
+    particleSize : 16,
+
+    stage        : null,
 
     init : function()
     {
@@ -18,7 +20,48 @@ var U =
 
     run : function()
     {
-        U.drawCircle();
+        //U.drawCircle();
+
+        U.createNoise();
+    },
+
+    createNoise : function()
+    {
+        var width  = U.stage.getWidth();
+        var height = U.stage.getHeight();
+
+        var layer  = new Kinetic.Layer();
+
+        for (var y = 0; y < height; y += U.particleSize)
+        {
+            for (var x = 0; x < width; x += U.particleSize)
+            {
+                simplexNoise = new SimplexNoise();
+                var noise = simplexNoise.noise(x / U.particleSize, y / U.particleSize);
+
+                log(noise);
+
+                var particle = U.getParticle(x, y, noise);
+                layer.add(particle);
+            }
+        }
+
+        U.stage.add(layer);
+    },
+
+    getParticle : function(x, y, intesity)
+    {
+        var particle = new Kinetic.Rect({
+            width       : U.particleSize,
+            height      : U.particleSize,
+            strokeWidth : 0,
+            fill        : 'blue',
+            x           : x,
+            y           : y,
+            opacity     : intesity
+        });
+
+        return particle;
     },
 
     drawCircle : function()
