@@ -1,13 +1,18 @@
 <html>
 <head>
-    <?php echo $this->headLink()->appendStylesheet($this->baseUrl('css/style.css')); ?>
-    <?php echo $this->headScript()->appendFile('http://ajax.googleapis.com/ajax/libs/jquery/1.8.1/jquery.min.js'); ?>
-    <?php echo $this->headScript()->appendFile($this->baseUrl('js/perlin-noise-simplex.js')); ?>
-    <?php echo $this->headScript()->appendFile($this->baseUrl('js/log.js')); ?>
-    <?php echo $this->headScript()->appendFile($this->baseUrl('js/noise.js')); ?>
-    <?php echo $this->headScript()->appendFile($this->baseUrl('js/universe.js')); ?>
+    <?php echo $this->headLink()->appendStylesheet('http://fonts.googleapis.com/css?family=Electrolize')
+    ->appendStylesheet($this->baseUrl('css/style.css')); ?>
+
+    <?php echo $this->headScript()->appendFile('http://ajax.googleapis.com/ajax/libs/jquery/1.8.1/jquery.min.js')
+    ->appendFile($this->baseUrl('js/perlin-noise-simplex.js'))
+    ->appendFile($this->baseUrl('js/log.js'))
+    ->appendFile($this->baseUrl('js/noise.js'))
+    ->appendFile($this->baseUrl('js/universe.js')); ?>
 </head>
 <body>
-    <?php echo $this->layout()->content; ?>
+    <header><h1>createauniverse.net</h1></header>
+    <div id="content">
+        <?php echo $this->layout()->content; ?>
+    </div>
 </body>
 </html>

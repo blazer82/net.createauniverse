@@ -1,6 +1,19 @@
 body
 {
     background: #000;
+    color: #ccc;
+}
+
+header h1
+{
+    font-size: 48px;
+    text-align: center;
+    font-family: "Electrolize", sans-serif;
+}
+
+#content
+{
+    text-align: center;
 }
 
 #universe,
@@ -8,7 +21,7 @@ body
 {
     width: 1024px;
     height: 512px;
-    margin: 0 auto;
+    margin: 10px auto;
 }
 #universe
 {
