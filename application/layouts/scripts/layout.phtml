@@ -1,5 +1,9 @@
+<?php echo $this->doctype() ?>
+
 <html>
 <head>
+    <?php echo $this->headMeta()->appendHttpEquiv('Content-Type', 'text/html; charset=utf-8'); ?>
+
     <?php echo $this->headLink()->appendStylesheet('http://fonts.googleapis.com/css?family=Electrolize')
     ->appendStylesheet($this->baseUrl('css/style.css')); ?>
 
@@ -10,9 +14,16 @@
     ->appendFile($this->baseUrl('js/universe.js')); ?>
 </head>
 <body>
-    <header><h1>createauniverse.net</h1></header>
-    <div id="content">
-        <?php echo $this->layout()->content; ?>
+    <div id="wrapper">
+        <header>
+            <h1>createauniverse.net</h1>
+        </header>
+        <div id="content">
+            <?php echo $this->layout()->content; ?>
+        </div>
+        <footer>
+            <p><?php echo date('Y'); ?> by Raphael Stäbler</p>
+        </footer>
     </div>
 </body>
 </html>
