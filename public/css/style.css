@@ -1,8 +1,16 @@
+body
+{
+    background: #000;
+}
 
-#universe
+#universe,
+#controls
 {
     width: 512px;
     height: 512px;
     margin: 0 auto;
-    border: 1px solid #000;
+}
+#universe
+{
+    border: 1px solid #ccc;
 }

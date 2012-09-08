@@ -1,12 +1,16 @@
 <script type="text/javascript">
 
+    var universe;
+
     $(function()
     {
-        var universe = new Universe('universe');
-        universe.run();
+        universe = new Universe('universe');
     });
 
 </script>
 
 <div id="universe">
+</div>
+<div id="controls">
+    <button onclick="universe.createNoise()">Create noise</button>
 </div>
