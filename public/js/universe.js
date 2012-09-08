@@ -1,9 +1,9 @@
 
 var Universe = function(elementId)
 {
-    this.particleSize  = 8;
-    this.gravityRadius = 16;
-    this.gravityFactor = .02;
+    this.particleSize  = 4;
+    this.gravityRadius = 32;
+    this.gravityFactor = .05;
 
     this.particles = [];
 
@@ -87,8 +87,6 @@ Universe.prototype.nextFrame = function()
             {
                 for (var rx = x-this.gravityRadius; rx <= x+this.gravityRadius; rx++)
                 {
-                    if (ry < 0 || this.size.height <= ry || rx < 0 || this.size.width <= rx) continue;
-
                     var forceVec = {
                         x: particle.x - rx,
                         y: particle.y - ry
@@ -101,7 +99,16 @@ Universe.prototype.nextFrame = function()
 
                     var g = particle.mass * this.gravityFactor * (vecLength / Math.pow(vecLength, 2));
 
-                    var affectedParticle = this.particles[ry][rx];
+                    affectedParticleY = ry;
+                    affectedParticleX = rx;
+
+                    if (affectedParticleX < 0) affectedParticleX += this.size.width;
+                    if (affectedParticleY < 0) affectedParticleY += this.size.height;
+
+                    if (this.size.width <= affectedParticleX) affectedParticleX -= this.size.width;
+                    if (this.size.height <= affectedParticleY) affectedParticleY -= this.size.height;
+
+                    var affectedParticle = this.particles[affectedParticleY][affectedParticleX];
 
                     if (!affectedParticle) continue;
 
@@ -134,7 +141,7 @@ Universe.prototype.nextFrame = function()
 
             if (!particle) continue;
 
-            particle.render(this.particleSize >= 16);
+            particle.render(this.particleSize >= 64);
         }
     }
 
@@ -163,12 +170,13 @@ Universe.prototype.updateParticlesArray = function()
 
             if (particle)
             {
-                if (particle.x < 0 || particle.y < 0 || this.size.width <= particle.x || this.size.height <= particle.y)
-                {
-                    // out of stage
-                    particle.destroy();
-                }
-                else if (particles[particle.y][particle.x])
+                if (particle.x < 0) particle.x += this.size.width;
+                if (particle.y < 0) particle.y += this.size.height;
+
+                if (this.size.width <= particle.x) particle.x -= this.size.width;
+                if (this.size.height <= particle.y) particle.y -= this.size.height;
+
+                if (particles[particle.y][particle.x])
                 {
                     // got eaten
 
