@@ -28,10 +28,6 @@ var Universe = function(elementId)
     log('Stage initialized with size '+this.stage.getWidth()+'x'+this.stage.getHeight());
 };
 
-Universe.prototype.run = function()
-{
-};
-
 Universe.prototype.createNoise = function()
 {
     this.clear();
@@ -62,18 +58,31 @@ Universe.prototype.render = function()
 {
     this.stage.clear();
     this.layer.draw();
-}
+};
 
 Universe.prototype.clear = function()
 {
     this.stage.clear();
     this.layer.removeChildren();
     this.particles = [];
-}
+};
 
-Universe.prototype.nextFrame = function()
+Universe.prototype.computeGravitationalField = function()
 {
-    log('next frame');
+    var field = [];
+
+    for (var y = 0; y < this.size.height; y++)
+    {
+        field[y] = [];
+
+        for (var x = 0; x < this.size.width; x++)
+        {
+            field[y][x] = {
+                x: 0.0,
+                y: 0.0
+            };
+        }
+    }
 
     for (var y = 0; y < this.size.height; y++)
     {
@@ -99,25 +108,30 @@ Universe.prototype.nextFrame = function()
 
                     var g = particle.mass * this.gravityFactor * (vecLength / Math.pow(vecLength, 2));
 
-                    affectedParticleY = ry;
-                    affectedParticleX = rx;
+                    affectedY = ry;
+                    affectedX = rx;
 
-                    if (affectedParticleX < 0) affectedParticleX += this.size.width;
-                    if (affectedParticleY < 0) affectedParticleY += this.size.height;
+                    if (affectedX < 0) affectedX += this.size.width;
+                    if (affectedY < 0) affectedY += this.size.height;
 
-                    if (this.size.width <= affectedParticleX) affectedParticleX -= this.size.width;
-                    if (this.size.height <= affectedParticleY) affectedParticleY -= this.size.height;
+                    if (this.size.width <= affectedX) affectedX -= this.size.width;
+                    if (this.size.height <= affectedY) affectedY -= this.size.height;
 
-                    var affectedParticle = this.particles[affectedParticleY][affectedParticleX];
-
-                    if (!affectedParticle) continue;
-
-                    affectedParticle.force.x += forceVec.x * g;
-                    affectedParticle.force.y += forceVec.y * g;
+                    field[affectedY][affectedX].x += forceVec.x * g;
+                    field[affectedY][affectedX].y += forceVec.y * g;
                 }
             }
         }
     }
+
+    return field;
+};
+
+Universe.prototype.nextFrame = function()
+{
+    log('next frame');
+
+    var field = this.computeGravitationalField();
 
     for (var y = 0; y < this.size.height; y++)
     {
@@ -126,6 +140,9 @@ Universe.prototype.nextFrame = function()
             var particle = this.particles[y][x];
 
             if (!particle) continue;
+
+            particle.force.x += field[y][x].x;
+            particle.force.y += field[y][x].y;
 
             particle.applyForce();
         }
@@ -201,7 +218,7 @@ Universe.prototype.updateParticlesArray = function()
     }
 
     this.particles = particles;
-}
+};
 
 
 var Particle = function(x, y, mass, size)
@@ -250,7 +267,7 @@ Particle.prototype.render = function(animate)
 Particle.prototype.destroy = function()
 {
     this.shape.hide();
-}
+};
 
 Particle.prototype.computeStagePosition = function()
 {
