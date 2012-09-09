@@ -1,5 +1,5 @@
 /**
- * Universe simulation by Raphael Stäbler
+ * Universe simulation by Raphael Stäbler (nenharma@fantasymail.de)
  * Feel free to copy, improve and share
  */
 
