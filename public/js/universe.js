@@ -52,23 +52,27 @@ Universe.prototype.createNoise = function()
 {
     this.clear();
 
+    var x;
+    var y;
     var noise  = new Noise();
 
-    for (var y = 0; y < this.size.height; y++)
+    y = this.size.height;
+    do
     {
-        this.particles[y] = [];
+        this.particles[--y] = [];
 
-        for (var x = 0; x < this.size.width; x++)
+        x = this.size.width;
+        do
         {
-            var mass = Math.abs(noise.smoothedNoise(x, y));
+            var mass = Math.abs(noise.smoothedNoise(--x, y));
 
             //log(mass);
 
             var particle = new Particle(x, y, mass, this.particleSize);
 
             this.particles[y][x] = particle;
-        }
-    }
+        } while (x);
+    } while (y);
 
     this.render();
 
@@ -80,11 +84,17 @@ Universe.prototype.render = function()
 {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    for (var y = 0; y < this.size.height; y++)
+    var x;
+    var y;
+
+    y = this.size.height;
+    do
     {
-        for (var x = 0; x < this.size.width; x++)
+        x = this.size.width;
+        --y;
+        do
         {
-            var particle = this.particles[y][x];
+            var particle = this.particles[y][--x];
 
             if (!particle) continue;
 
@@ -95,8 +105,8 @@ Universe.prototype.render = function()
             this.context.rect(stagePos.x, stagePos.y, particle.size, particle.size);
             this.context.fillStyle = color;
             this.context.fill();
-        }
-    }
+        } while (x);
+    } while (y);
 };
 
 Universe.prototype.clear = function()
@@ -114,42 +124,64 @@ Universe.prototype.computeGravitationalField = function()
 
     var wrapEdges = this.getOption('wrap-edges')[0].checked;
 
-    for (var y = 0; y < this.size.height; y++)
-    {
-        field[y] = [];
+    var x;
+    var y;
+    var rx;
+    var ry;
+    var g;
+    var particle;
+    var forceVec;
+    var vecLength;
+    var affectedCoords;
 
-        for (var x = 0; x < this.size.width; x++)
+    var absX;
+    var absY;
+
+    y = this.size.height;
+    do
+    {
+        field[--y] = [];
+
+        x = this.size.width;
+        do
         {
-            field[y][x] = {
+            field[y][--x] = {
                 x: 0.0,
                 y: 0.0
             };
-        }
-    }
+        } while (x);
+    } while (y);
 
-    for (var y = 0; y < this.size.height; y++)
+    y = this.size.height;
+    do
     {
-        for (var x = 0; x < this.size.width; x++)
+        --y;
+        x = this.size.width;
+        do
         {
-            var particle = this.particles[y][x];
+            particle = this.particles[y][--x];
 
             if (!particle) continue;
 
-            for (var ry = y-this.gravityRadius; ry <= y+this.gravityRadius; ry++)
+            for (ry = y-this.gravityRadius; ry <= y+this.gravityRadius; ry++)
             {
-                for (var rx = x-this.gravityRadius; rx <= x+this.gravityRadius; rx++)
+                for (rx = x-this.gravityRadius; rx <= x+this.gravityRadius; rx++)
                 {
-                    var forceVec = {
+                    forceVec = {
                         x: particle.x - rx,
                         y: particle.y - ry
                     };
 
                     if (forceVec.x == 0 && forceVec.y == 0) continue;
 
-                    var vecLength = Math.abs(forceVec.x) + Math.abs(forceVec.y);
+                    // faster than Math.abs()
+                    absX = (forceVec.x >> 31) ? -forceVec.x : forceVec.x;
+                    absY = (forceVec.y >> 31) ? -forceVec.y : forceVec.y;
+                    vecLength = absX + absY;
+
                     if (vecLength > this.gravityRadius) continue;
 
-                    var g = particle.mass * this.gravityFactor * (vecLength / (vecLength*vecLength));
+                    g = particle.mass * this.gravityFactor * (vecLength / (vecLength*vecLength));
 
                     affectedCoords = this.normalizeCoords(rx, ry);
 
@@ -160,8 +192,8 @@ Universe.prototype.computeGravitationalField = function()
                     }
                 }
             }
-        }
-    }
+        } while (x);
+    } while (y);
 
     return field;
 };
@@ -172,11 +204,17 @@ Universe.prototype.nextFrame = function()
 
     var field = this.computeGravitationalField();
 
-    for (var y = 0; y < this.size.height; y++)
+    var x;
+    var y;
+
+    y = this.size.height;
+    do
     {
-        for (var x = 0; x < this.size.width; x++)
+        --y;
+        x = this.size.width;
+        do
         {
-            var particle = this.particles[y][x];
+            var particle = this.particles[y][--x];
 
             if (!particle) continue;
 
@@ -184,8 +222,8 @@ Universe.prototype.nextFrame = function()
             particle.force.y += field[y][x].y;
 
             this.applyForce(particle);
-        }
-    }
+        } while (x);
+    } while (y);
 
     this.updateParticlesArray();
 
@@ -198,25 +236,35 @@ Universe.prototype.updateParticlesArray = function()
 
     var wrapEdges = this.getOption('wrap-edges')[0].checked;
 
-    for (var y = 0; y < this.size.height; y++)
-    {
-        particles[y] = [];
+    var x;
+    var y;
+    var particle;
+    var coords;
 
-        for (var x = 0; x < this.size.width; x++)
-        {
-            particles[y][x] = null;
-        }
-    }
-
-    for (var y = 0; y < this.size.height; y++)
+    y = this.size.height;
+    do
     {
-        for (var x = 0; x < this.size.width; x++)
+        particles[--y] = [];
+
+        x = this.size.width;
+        do
         {
-            var particle = this.particles[y][x];
+            particles[y][--x] = null;
+        } while (x);
+    } while (y);
+
+    y = this.size.height;
+    do
+    {
+        --y;
+        x = this.size.width;
+        do
+        {
+            particle = this.particles[y][--x];
 
             if (particle)
             {
-                var coords = this.normalizeCoords(particle.x, particle.y);
+                coords = this.normalizeCoords(particle.x, particle.y);
                 particle.x = coords.x;
                 particle.y = coords.y;
 
@@ -245,8 +293,8 @@ Universe.prototype.updateParticlesArray = function()
                     particles[particle.y][particle.x] = particle;
                 }
             }
-        }
-    }
+        } while (x);
+    } while (y);
 
     this.particles = particles;
 };
@@ -255,22 +303,6 @@ Universe.prototype.applyForce = function(particle)
 {
     var toX = Math.round(particle.x + particle.force.x);
     var toY = Math.round(particle.y + particle.force.y);
-
-    /*var coords = this.normalizeCoords(toX, toY);
-    toX = coords.x;
-    toY = coords.y;
-
-    if (toX == particle.x && toY == particle.y) return;
-
-    var diffX = toX - particle.x;
-    var diffY = toY - particle.y;
-
-    var destParticle = this.particles[toY][toX];
-
-    if (destParticle && (destParticle.maxDensityReached || particle.maxDensityReached))
-    {
-        log('gotta do something here');
-    }*/
 
     particle.x = toX;
     particle.y = toY;
@@ -353,9 +385,10 @@ Particle.prototype.computeColor = function()
 {
     if (this.maxDensityReached) return 'rgb(255, 255, 255)';
 
-    var r = Math.floor(this.mass * 106);
-    var g = Math.floor(this.mass * 27);
-    var b = Math.floor(this.mass * 224);
+    // int casting by bit shifting
+    var r = (this.mass * 106) >> 0;
+    var g = (this.mass * 27) >> 0;
+    var b = (this.mass * 224) >> 0;
 
     r = Math.min(r, 255);
     g = Math.min(g, 255);
