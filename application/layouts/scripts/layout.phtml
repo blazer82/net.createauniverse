@@ -12,6 +12,10 @@
     ->appendFile($this->baseUrl('js/log.js'))
     ->appendFile($this->baseUrl('js/noise.js'))
     ->appendFile($this->baseUrl('js/universe.js')); ?>
+
+    <script type="text/javascript">
+        var logEnabled = <?php echo (APPLICATION_ENV == 'development') ? 'true' : 'false'; ?>;
+    </script>
 </head>
 <body>
     <div id="wrapper">
@@ -22,7 +26,7 @@
             <?php echo $this->layout()->content; ?>
         </div>
         <footer>
-            <p><?php echo date('Y'); ?> by Raphael Stäbler</p>
+            <p>2012 by Raphael Stäbler</p>
         </footer>
     </div>
 </body>

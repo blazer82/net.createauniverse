@@ -1,4 +1,11 @@
-
+/**
+ * Perlin noise generator
+ *
+ * Uses SimplexNoise by Sean McCullough (ported from Stefan Gustavson)
+ *
+ * smoothedNoise by
+ * http://freespace.virgin.net/hugo.elias/models/m_perlin.htm
+ */
 
 var Noise = function()
 {

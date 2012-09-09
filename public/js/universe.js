@@ -1,3 +1,7 @@
+/**
+ * Universe simulation by Raphael Stäbler
+ * Feel free to copy, improve and share
+ */
 
 var Universe = function(elementId)
 {
@@ -121,17 +125,10 @@ Universe.prototype.computeGravitationalField = function()
 
                     var g = particle.mass * this.gravityFactor * (vecLength / (vecLength*vecLength));
 
-                    affectedY = ry;
-                    affectedX = rx;
+                    affectedCoords = this.normalizeCoords(rx, ry);
 
-                    if (affectedX < 0) affectedX += this.size.width;
-                    if (affectedY < 0) affectedY += this.size.height;
-
-                    if (this.size.width <= affectedX) affectedX -= this.size.width;
-                    if (this.size.height <= affectedY) affectedY -= this.size.height;
-
-                    field[affectedY][affectedX].x += forceVec.x * g;
-                    field[affectedY][affectedX].y += forceVec.y * g;
+                    field[affectedCoords.y][affectedCoords.x].x += forceVec.x * g;
+                    field[affectedCoords.y][affectedCoords.x].y += forceVec.y * g;
                 }
             }
         }
@@ -157,7 +154,7 @@ Universe.prototype.nextFrame = function()
             particle.force.x += field[y][x].x;
             particle.force.y += field[y][x].y;
 
-            particle.applyForce();
+            this.applyForce(particle);
         }
     }
 
@@ -188,11 +185,9 @@ Universe.prototype.updateParticlesArray = function()
 
             if (particle)
             {
-                if (particle.x < 0) particle.x += this.size.width;
-                if (particle.y < 0) particle.y += this.size.height;
-
-                if (this.size.width <= particle.x) particle.x -= this.size.width;
-                if (this.size.height <= particle.y) particle.y -= this.size.height;
+                var coords = this.normalizeCoords(particle.x, particle.y);
+                particle.x = coords.x;
+                particle.y = coords.y;
 
                 if (particles[particle.y][particle.x])
                 {
@@ -221,6 +216,42 @@ Universe.prototype.updateParticlesArray = function()
     this.particles = particles;
 };
 
+Universe.prototype.applyForce = function(particle)
+{
+    var toX = Math.round(particle.x + particle.force.x);
+    var toY = Math.round(particle.y + particle.force.y);
+
+    var coords = this.normalizeCoords(toX, toY);
+    toX = coords.x;
+    toY = coords.y;
+
+    if (toX == particle.x && toY == particle.y) return;
+
+    var diffX = toX - particle.x;
+    var diffY = toY - particle.y;
+
+    var destParticle = this.particles[toY][toX];
+
+    if (destParticle && (destParticle.maxDensityReached || particle.maxDensityReached))
+    {
+        log('gotta do something here');
+    }
+
+    particle.x = toX;
+    particle.y = toY;
+};
+
+Universe.prototype.normalizeCoords = function(x, y)
+{
+    if (x < 0) x += this.size.width;
+    if (y < 0) y += this.size.height;
+
+    if (this.size.width <= x) x -= this.size.width;
+    if (this.size.height <= y) y -= this.size.height;
+
+    return {x: x, y: y};
+};
+
 
 var Particle = function(x, y, mass, size)
 {
@@ -229,12 +260,7 @@ var Particle = function(x, y, mass, size)
     this.mass  = mass;
     this.size  = size;
     this.force = {x: 0, y: 0};
-};
-
-Particle.prototype.applyForce = function()
-{
-    this.x = Math.round(this.x + this.force.x);
-    this.y = Math.round(this.y + this.force.y);
+    this.maxDensityReached = false;
 };
 
 Particle.prototype.destroy = function()
@@ -248,6 +274,8 @@ Particle.prototype.computeStagePosition = function()
 
 Particle.prototype.computeColor = function()
 {
+    if (this.maxDensityReached) return 'rgb(255, 255, 255)';
+
     var r = Math.floor(this.mass * 106);
     var g = Math.floor(this.mass * 27);
     var b = Math.floor(this.mass * 224);
@@ -256,7 +284,7 @@ Particle.prototype.computeColor = function()
     g = Math.min(g, 255);
     b = Math.min(b, 255);
 
-    if (r > 255 || g > 255 || b > 255) log('color alert!');
+    if (r == 255 && g == 255 && b == 255) this.maxDensityReached = true;
 
     return 'rgb('+r+','+g+','+b+')';
 };

@@ -1,5 +1,8 @@
 
 function log(text)
 {
-    console.log(text);
+    if (logEnabled)
+    {
+        console.log(text);
+    }
 }
