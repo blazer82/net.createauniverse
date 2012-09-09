@@ -5,29 +5,47 @@
 
 var Universe = function(elementId)
 {
-    this.particleSize  = 4;
-    this.gravityRadius = 32;
-    this.gravityFactor = .05;
-
     this.particles = [];
 
-    var $universe = $('#universe');
-
-    this.size = {
-        width: Math.floor($universe.innerWidth() / this.particleSize),
-        height: Math.floor($universe.innerHeight() / this.particleSize)
-    };
-
-    log('Universe initialized with size '+this.size.width+'x'+this.size.height);
+    this.universe = $('#'+elementId);
 
     this.canvas = document.createElement('canvas');
-    this.canvas.width = $universe.innerWidth();
-    this.canvas.height = $universe.innerHeight();
-    $universe.append(this.canvas);
+    this.canvas.width = this.universe.innerWidth();
+    this.canvas.height = this.universe.innerHeight();
+    this.universe.append(this.canvas);
 
     this.context = this.canvas.getContext('2d');
 
     log('Context initialized with size '+this.canvas.width+'x'+this.canvas.height);
+
+    this.init();
+};
+
+Universe.prototype.init = function()
+{
+    var $resolution = $('#controls [name=resolution]');
+
+    if ($resolution.val() == 'low')
+    {
+        this.particleSize  = 8;
+        this.gravityRadius = 32;
+        this.gravityFactor = .05;
+    }
+    else
+    {
+        this.particleSize  = 4;
+        this.gravityRadius = 32;
+        this.gravityFactor = .05;
+    }
+
+    this.size = {
+        width: Math.floor(this.universe.innerWidth() / this.particleSize),
+        height: Math.floor(this.universe.innerHeight() / this.particleSize)
+    };
+
+    this.clear();
+
+    log('Universe initialized with size '+this.size.width+'x'+this.size.height);
 };
 
 Universe.prototype.createNoise = function()
@@ -53,6 +71,9 @@ Universe.prototype.createNoise = function()
     }
 
     this.render();
+
+    this.enableOptions(['next-frame', 'clear'], true);
+    this.enableOptions(['resolution'], false);
 };
 
 Universe.prototype.render = function()
@@ -82,11 +103,16 @@ Universe.prototype.clear = function()
 {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.particles = [];
+
+    this.enableOptions(['next-frame', 'clear'], false);
+    this.enableOptions(['resolution'], true);
 };
 
 Universe.prototype.computeGravitationalField = function()
 {
     var field = [];
+
+    var wrapEdges = this.getOption('wrap-edges')[0].checked;
 
     for (var y = 0; y < this.size.height; y++)
     {
@@ -127,8 +153,11 @@ Universe.prototype.computeGravitationalField = function()
 
                     affectedCoords = this.normalizeCoords(rx, ry);
 
-                    field[affectedCoords.y][affectedCoords.x].x += forceVec.x * g;
-                    field[affectedCoords.y][affectedCoords.x].y += forceVec.y * g;
+                    if (!affectedCoords.altered || wrapEdges)
+                    {
+                        field[affectedCoords.y][affectedCoords.x].x += forceVec.x * g;
+                        field[affectedCoords.y][affectedCoords.x].y += forceVec.y * g;
+                    }
                 }
             }
         }
@@ -167,6 +196,8 @@ Universe.prototype.updateParticlesArray = function()
 {
     var particles = [];
 
+    var wrapEdges = this.getOption('wrap-edges')[0].checked;
+
     for (var y = 0; y < this.size.height; y++)
     {
         particles[y] = [];
@@ -189,7 +220,11 @@ Universe.prototype.updateParticlesArray = function()
                 particle.x = coords.x;
                 particle.y = coords.y;
 
-                if (particles[particle.y][particle.x])
+                if (!wrapEdges && coords.altered)
+                {
+                    particle.destroy();
+                }
+                else if (particles[particle.y][particle.x])
                 {
                     // got eaten
 
@@ -221,7 +256,7 @@ Universe.prototype.applyForce = function(particle)
     var toX = Math.round(particle.x + particle.force.x);
     var toY = Math.round(particle.y + particle.force.y);
 
-    var coords = this.normalizeCoords(toX, toY);
+    /*var coords = this.normalizeCoords(toX, toY);
     toX = coords.x;
     toY = coords.y;
 
@@ -235,7 +270,7 @@ Universe.prototype.applyForce = function(particle)
     if (destParticle && (destParticle.maxDensityReached || particle.maxDensityReached))
     {
         log('gotta do something here');
-    }
+    }*/
 
     particle.x = toX;
     particle.y = toY;
@@ -243,13 +278,55 @@ Universe.prototype.applyForce = function(particle)
 
 Universe.prototype.normalizeCoords = function(x, y)
 {
-    if (x < 0) x += this.size.width;
-    if (y < 0) y += this.size.height;
+    var valueAltered = false;
 
-    if (this.size.width <= x) x -= this.size.width;
-    if (this.size.height <= y) y -= this.size.height;
+    if (x < 0)
+    {
+        x += this.size.width;
+        valueAltered = true;
+    }
 
-    return {x: x, y: y};
+    if (y < 0)
+    {
+        y += this.size.height;
+        valueAltered = true;
+    }
+
+    if (this.size.width <= x)
+    {
+        x -= this.size.width;
+        valueAltered = true;
+    }
+
+    if (this.size.height <= y)
+    {
+        y -= this.size.height;
+        valueAltered = true;
+    }
+
+    return {x: x, y: y, altered: valueAltered};
+};
+
+Universe.prototype.enableOptions = function(options, enabled)
+{
+    for (var i = 0; i < options.length; i++)
+    {
+        var $element = $('#controls [name='+options[i]+']');
+
+        if (enabled)
+        {
+            $element.removeAttr('disabled');
+        }
+        else
+        {
+            $element.attr('disabled', 'disabled');
+        }
+    }
+};
+
+Universe.prototype.getOption = function(name)
+{
+    return $('#controls [name='+name+']');
 };
 
 

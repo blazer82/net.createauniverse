@@ -1,7 +1,7 @@
 
 function log(text)
 {
-    if (logEnabled)
+    if (debug)
     {
         console.log(text);
     }

@@ -5,6 +5,10 @@
     $(function()
     {
         universe = new Universe('universe');
+
+        $('#controls [name=resolution]').change(function(){
+            universe.init();
+        });
     });
 
 </script>
@@ -12,7 +16,32 @@
 <div id="universe">
 </div>
 <div id="controls">
-    <button onclick="universe.createNoise()">Create noise</button>
-    <button onclick="universe.nextFrame()">Next frame</button>
-    <button onclick="universe.clear()">Clear</button>
+    <div id="controls-actions">
+        <button name="create-noise" onclick="universe.createNoise()">Create noise</button>
+        <button name="next-frame" onclick="universe.nextFrame()">Next frame</button>
+        <button name="clear" onclick="universe.clear()">Clear</button>
+    </div>
+    <div id="controls-options">
+        <h3>Options</h3>
+        <table>
+            <tbody>
+            <tr>
+                <td>Resolution:</td>
+                <td>
+                    <select name="resolution">
+                        <option value="medium">medium</option>
+                        <option value="low">low</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>Wrap edges:</td>
+                <td>
+                    <input type="checkbox" name="wrap-edges" value="1" checked="checked">
+                    (unchecking this option will cause mass to get lost on the boarders)
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
 </div>
