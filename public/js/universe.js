@@ -65,11 +65,11 @@ Universe.prototype.init = function()
 
         if (debug && this.clusters[t] % 1 > 0)
         {
-            log('WARN: cluster size must not be float!');
+            log('WARN: cluster size must not be float!', true);
         }
     } while (t);
 
-    this.clear();
+    this.clear(true);
 
     log('Universe initialized with size '+this.size.width+'x'+this.size.height);
 };
@@ -123,7 +123,7 @@ Universe.prototype.createNoise = function()
         this.workers[t] = worker;
         this.activeWorkers++;
 
-        log('Starting worker '+t);
+        log('Generating particles: worker '+ (this.threads -t) +'...');
         worker.postMessage({
             worker       : t,
             width        : { start : 0,                length : this.size.width },
@@ -136,6 +136,8 @@ Universe.prototype.createNoise = function()
 
 Universe.prototype.render = function()
 {
+    log('Rendering particles...');
+
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     var t;
@@ -167,9 +169,11 @@ Universe.prototype.render = function()
             } while (x);
         } while (y);
     } while (t);
+
+    log('Completed.');
 };
 
-Universe.prototype.clear = function()
+Universe.prototype.clear = function(suppressLogClearing)
 {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.particles = [];
@@ -194,6 +198,12 @@ Universe.prototype.clear = function()
         } while (y);
     } while (t);
 
+    if (!suppressLogClearing)
+    {
+        clearLog();
+        log('Clear.');
+    }
+
     this.enableOptions(['next-frame', 'clear'], false);
     this.enableOptions(['resolution'], true);
 };
@@ -201,7 +211,7 @@ Universe.prototype.clear = function()
 Universe.prototype.cleanUpWorkers = function()
 {
     this.workers = [];
-    log('Workers done.');
+    log('All workers completed.');
 }
 
 Universe.prototype.computeGravitationalField = function(onComplete)
@@ -261,7 +271,7 @@ Universe.prototype.computeGravitationalField = function(onComplete)
         this.workers[t] = worker;
         this.activeWorkers++;
 
-        log('Starting worker '+t);
+        log('Computing gravitational field: worker '+ (this.threads -t) +'...');
         worker.postMessage({
             worker        : t,
             width         : { start : 0,                length : this.size.width },
@@ -279,8 +289,6 @@ Universe.prototype.computeGravitationalField = function(onComplete)
 
 Universe.prototype.nextFrame = function()
 {
-    log('next frame');
-
     this.enableOptions(['create-noise', 'next-frame', 'clear'], false);
 
     var that = this;

@@ -26,14 +26,15 @@ header h1
     position: relative;
     text-align: center;
     height: 100%;
-    min-height: 900px;
+    min-height: 1100px;
 }
 
 header,
 footer,
 #content,
 #universe,
-#controls
+#controls,
+#log
 {
     width: 1024px;
     margin: 0 auto;
@@ -49,10 +50,15 @@ header,
     height: 512px;
     border: 1px solid #ccc;
 }
+
 #controls-options
 {
     margin-top: 60px;
     text-align: left;
+}
+#controls-options .content
+{
+    border-top: 1px solid #ccc;
 }
 #controls-options table
 {
@@ -63,6 +69,29 @@ header,
     text-align: left;
     padding: 2px 10px 2px 0;
     margin: 0;
+}
+
+#log
+{
+    margin-top: 60px;
+    text-align: left;
+}
+#log .content
+{
+    height: 100px;
+    border-top: 1px solid #ccc;
+    overflow: hidden;
+}
+#log .content p
+{
+    padding: 4px 0 0 0;
+    margin: 0;
+    color: rgb(86, 105, 64);
+}
+#log .content p strong
+{
+    font-weight: bold;
+    color: rgb(96, 130, 34);
 }
 
 
