@@ -16,6 +16,9 @@ var Universe = function(elementId)
 
     this.context = this.canvas.getContext('2d');
 
+    this.workers = [];
+    this.activeWorkers = 0;
+
     log('Context initialized with size '+this.canvas.width+'x'+this.canvas.height);
 
     this.init();
@@ -30,18 +33,41 @@ Universe.prototype.init = function()
         this.particleSize  = 8;
         this.gravityRadius = 32;
         this.gravityFactor = .05;
+        this.threads = 4;
+    }
+    else if ($resolution.val() == 'high')
+    {
+        this.particleSize  = 2;
+        this.gravityRadius = 32;
+        this.gravityFactor = .05;
+        this.threads = 8;
     }
     else
     {
         this.particleSize  = 4;
         this.gravityRadius = 32;
         this.gravityFactor = .05;
+        this.threads = 8;
     }
 
     this.size = {
-        width: Math.floor(this.universe.innerWidth() / this.particleSize),
-        height: Math.floor(this.universe.innerHeight() / this.particleSize)
+        width: (this.universe.innerWidth() / this.particleSize) >> 0,
+        height: (this.universe.innerHeight() / this.particleSize) >> 0
     };
+
+    this.clusters = [];
+
+    var t = this.threads;
+    do
+    {
+        --t;
+        this.clusters[t] = t * this.size.height / this.threads;
+
+        if (debug && this.clusters[t] % 1 > 0)
+        {
+            log('WARN: cluster size must not be float!');
+        }
+    } while (t);
 
     this.clear();
 
@@ -50,63 +76,97 @@ Universe.prototype.init = function()
 
 Universe.prototype.createNoise = function()
 {
+    if (this.activeWorkers) return;
+
     this.clear();
 
-    var x;
-    var y;
-    var noise  = new Noise();
+    this.enableOptions(['create-noise', 'next-frame', 'clear'], false);
 
-    y = this.size.height;
+    var t = this.threads;
     do
     {
-        this.particles[--y] = [];
+        --t;
+        var worker = new Worker('js/workers/createNoise.js');
 
-        x = this.size.width;
-        do
-        {
-            var mass = Math.abs(noise.smoothedNoise(--x, y));
+        var that = this;
+        worker.addEventListener('message', function(e) {
 
-            //log(mass);
+            var y;
+            var x;
 
-            var particle = new Particle(x, y, mass, this.particleSize);
+            y = that.size.height / that.threads;
+            do
+            {
+                --y;
+                x = that.size.width;
+                do
+                {
+                    --x;
+                    that.particles[e.data.worker][y][x] = new Particle(e.data.data[y][x]);
+                } while (x);
+            } while (y);
 
-            this.particles[y][x] = particle;
-        } while (x);
-    } while (y);
+            --that.activeWorkers;
 
-    this.render();
+            if (!that.activeWorkers)
+            {
+                that.cleanUpWorkers();
 
-    this.enableOptions(['next-frame', 'clear'], true);
-    this.enableOptions(['resolution'], false);
+                that.render();
+
+                that.enableOptions(['create-noise', 'next-frame', 'clear'], true);
+                that.enableOptions(['resolution'], false);
+            }
+
+        }, false);
+
+        this.workers[t] = worker;
+        this.activeWorkers++;
+
+        log('Starting worker '+t);
+        worker.postMessage({
+            worker       : t,
+            width        : { start : 0,                length : this.size.width },
+            height       : { start : this.clusters[t], length : this.size.height / this.threads },
+            particleSize : this.particleSize
+        });
+
+    } while (t);
 };
 
 Universe.prototype.render = function()
 {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
+    var t;
     var x;
     var y;
 
-    y = this.size.height;
+    t = this.threads;
     do
     {
-        x = this.size.width;
-        --y;
+        --t;
+        y = this.size.height / this.threads;
         do
         {
-            var particle = this.particles[y][--x];
+            --y;
+            x = this.size.width;
+            do
+            {
+                var particle = this.particles[t][y][--x];
 
-            if (!particle) continue;
+                if (!particle) continue;
 
-            var stagePos = particle.computeStagePosition();
-            var color    = particle.computeColor();
+                var stagePos = particle.computeStagePosition();
+                var color    = particle.computeColor();
 
-            this.context.beginPath();
-            this.context.rect(stagePos.x, stagePos.y, particle.size, particle.size);
-            this.context.fillStyle = color;
-            this.context.fill();
-        } while (x);
-    } while (y);
+                this.context.beginPath();
+                this.context.rect(stagePos.x, stagePos.y, particle.size, particle.size);
+                this.context.fillStyle = color;
+                this.context.fill();
+            } while (x);
+        } while (y);
+    } while (t);
 };
 
 Universe.prototype.clear = function()
@@ -114,28 +174,41 @@ Universe.prototype.clear = function()
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.particles = [];
 
+    var t;
+    var y;
+    var x;
+
+    t = this.threads;
+    do
+    {
+        this.particles[--t] = [];
+        y = this.size.height / this.threads;
+        do
+        {
+            this.particles[t][--y] = [];
+            x = this.size.width;
+            do
+            {
+                this.particles[t][y][--x] = null;
+            } while (x);
+        } while (y);
+    } while (t);
+
     this.enableOptions(['next-frame', 'clear'], false);
     this.enableOptions(['resolution'], true);
 };
 
-Universe.prototype.computeGravitationalField = function()
+Universe.prototype.cleanUpWorkers = function()
 {
+    this.workers = [];
+    log('Workers done.');
+}
+
+Universe.prototype.computeGravitationalField = function(onComplete)
+{
+    if (this.activeWorkers) return;
+
     var field = [];
-
-    var wrapEdges = this.getOption('wrap-edges')[0].checked;
-
-    var x;
-    var y;
-    var rx;
-    var ry;
-    var g;
-    var particle;
-    var forceVec;
-    var vecLength;
-    var affectedCoords;
-
-    var absX;
-    var absY;
 
     y = this.size.height;
     do
@@ -152,82 +225,100 @@ Universe.prototype.computeGravitationalField = function()
         } while (x);
     } while (y);
 
-    y = this.size.height;
+    var t = this.threads;
     do
     {
-        --y;
-        x = this.size.width;
-        do
-        {
-            particle = this.particles[y][--x];
+        --t;
+        var worker = new Worker('js/workers/computeGravitationalField.js');
 
-            if (!particle) continue;
+        var that = this;
+        worker.addEventListener('message', function(e) {
 
-            for (ry = y-this.gravityRadius; ry <= y+this.gravityRadius; ry++)
+            // merge fields
+            y = that.size.height;
+            do
             {
-                for (rx = x-this.gravityRadius; rx <= x+this.gravityRadius; rx++)
+                --y;
+                x = that.size.width;
+                do
                 {
-                    forceVec = {
-                        x: particle.x - rx,
-                        y: particle.y - ry
-                    };
+                    --x;
+                    field[y][x].x += e.data.data[y][x].x;
+                    field[y][x].y += e.data.data[y][x].y;
+                } while (x);
+            } while (y);
 
-                    if (forceVec.x == 0 && forceVec.y == 0) continue;
+            --that.activeWorkers;
 
-                    // faster than Math.abs()
-                    absX = (forceVec.x >> 31) ? -forceVec.x : forceVec.x;
-                    absY = (forceVec.y >> 31) ? -forceVec.y : forceVec.y;
-                    vecLength = absX + absY;
-
-                    if (vecLength > this.gravityRadius) continue;
-
-                    g = particle.mass * this.gravityFactor * (vecLength / (vecLength*vecLength));
-
-                    affectedCoords = this.normalizeCoords(rx, ry);
-
-                    if (!affectedCoords.altered || wrapEdges)
-                    {
-                        field[affectedCoords.y][affectedCoords.x].x += forceVec.x * g;
-                        field[affectedCoords.y][affectedCoords.x].y += forceVec.y * g;
-                    }
-                }
+            if (!that.activeWorkers)
+            {
+                that.cleanUpWorkers();
+                onComplete(field);
             }
-        } while (x);
-    } while (y);
 
-    return field;
+        }, false);
+
+        this.workers[t] = worker;
+        this.activeWorkers++;
+
+        log('Starting worker '+t);
+        worker.postMessage({
+            worker        : t,
+            width         : { start : 0,                length : this.size.width },
+            height        : { start : this.clusters[t], length : this.size.height / this.threads },
+            particles     : this.particles[t],
+            wrapEdges     : this.getOption('wrap-edges')[0].checked,
+            gravityRadius : this.gravityRadius,
+            gravityFactor : this.gravityFactor,
+            fieldWidth    : this.size.width,
+            fieldHeight   : this.size.height
+        });
+
+    } while (t);
 };
 
 Universe.prototype.nextFrame = function()
 {
     log('next frame');
 
-    var field = this.computeGravitationalField();
+    this.enableOptions(['create-noise', 'next-frame', 'clear'], false);
 
-    var x;
-    var y;
+    var that = this;
+    this.computeGravitationalField(function(field) {
 
-    y = this.size.height;
-    do
-    {
-        --y;
-        x = this.size.width;
+        var t;
+        var x;
+        var y;
+
+        t = that.threads;
         do
         {
-            var particle = this.particles[y][--x];
+            --t;
+            y = that.size.height / that.threads;
+            do
+            {
+                --y;
+                x = that.size.width;
+                do
+                {
+                    var particle = that.particles[t][y][--x];
 
-            if (!particle) continue;
+                    if (!particle) continue;
 
-            particle.force.x += field[y][x].x;
-            particle.force.y += field[y][x].y;
+                    particle.force.x += field[particle.y][particle.x].x;
+                    particle.force.y += field[particle.y][particle.x].y;
 
-            this.applyForce(particle);
-        } while (x);
-    } while (y);
+                    that.applyForce(particle);
+                } while (x);
+            } while (y);
+        } while (t);
 
-    this.updateParticlesArray();
+        that.updateParticlesArray();
 
-    this.render();
+        that.render();
+
+        that.enableOptions(['create-noise', 'next-frame', 'clear'], true);
+    });
 };
 
 Universe.prototype.updateParticlesArray = function()
@@ -236,65 +327,83 @@ Universe.prototype.updateParticlesArray = function()
 
     var wrapEdges = this.getOption('wrap-edges')[0].checked;
 
+    var t;
     var x;
     var y;
     var particle;
     var coords;
+    var clusterCoords;
 
-    y = this.size.height;
+    t = this.threads;
     do
     {
-        particles[--y] = [];
+        particles[--t] = [];
 
-        x = this.size.width;
+        y = this.size.height / this.threads;
         do
         {
-            particles[y][--x] = null;
-        } while (x);
-    } while (y);
+            particles[t][--y] = [];
 
-    y = this.size.height;
-    do
-    {
-        --y;
-        x = this.size.width;
-        do
-        {
-            particle = this.particles[y][--x];
-
-            if (particle)
+            x = this.size.width;
+            do
             {
-                coords = this.normalizeCoords(particle.x, particle.y);
-                particle.x = coords.x;
-                particle.y = coords.y;
+                particles[t][y][--x] = null;
+            } while (x);
+        } while (y);
+    } while (t);
 
-                if (!wrapEdges && coords.altered)
-                {
-                    particle.destroy();
-                }
-                else if (particles[particle.y][particle.x])
-                {
-                    // got eaten
+    t = this.threads;
+    do
+    {
+        --t;
+        y = this.size.height / this.threads;
+        do
+        {
+            --y;
+            x = this.size.width;
+            do
+            {
+                particle = this.particles[t][y][--x];
 
-                    if (particles[particle.y][particle.x].mass > particle.mass)
+                if (particle)
+                {
+                    coords = this.normalizeCoords(particle.x, particle.y);
+                    particle.x = coords.x;
+                    particle.y = coords.y;
+
+                    if (!wrapEdges && coords.altered)
                     {
-                        particles[particle.y][particle.x].mass += particle.mass;
                         particle.destroy();
                     }
                     else
                     {
-                        particle.mass += particles[particle.y][particle.x].mass;
-                        particles[particle.y][particle.x].destroy();
-                        particles[particle.y][particle.x] = particle;
+                        clusterCoords = this.getClusterCoords(particle.x, particle.y);
+
+                        if (particles[clusterCoords.t][clusterCoords.y][clusterCoords.x])
+                        {
+                            // got eaten
+
+                            if (particles[clusterCoords.t][clusterCoords.y][clusterCoords.x].mass > particle.mass)
+                            {
+                                particles[clusterCoords.t][clusterCoords.y][clusterCoords.x].mass += particle.mass;
+                                particle.destroy();
+                            }
+                            else
+                            {
+                                particle.mass += particles[clusterCoords.t][clusterCoords.y][clusterCoords.x].mass;
+                                particles[clusterCoords.t][clusterCoords.y][clusterCoords.x].destroy();
+                                particles[clusterCoords.t][clusterCoords.y][clusterCoords.x] = particle;
+                            }
+                        }
+                        else
+                        {
+                            particles[clusterCoords.t][clusterCoords.y][clusterCoords.x] = particle;
+                        }
                     }
                 }
-                else
-                {
-                    particles[particle.y][particle.x] = particle;
-                }
-            }
-        } while (x);
-    } while (y);
+            } while (x);
+        } while (y);
+    } while (t);
 
     this.particles = particles;
 };
@@ -339,6 +448,15 @@ Universe.prototype.normalizeCoords = function(x, y)
     return {x: x, y: y, altered: valueAltered};
 };
 
+Universe.prototype.getClusterCoords = function(x, y)
+{
+    return {
+        y : (y / this.threads) >> 0,
+        x : x,
+        t : y % this.threads
+    };
+};
+
 Universe.prototype.enableOptions = function(options, enabled)
 {
     for (var i = 0; i < options.length; i++)
@@ -359,42 +477,4 @@ Universe.prototype.enableOptions = function(options, enabled)
 Universe.prototype.getOption = function(name)
 {
     return $('#controls [name='+name+']');
-};
-
-
-var Particle = function(x, y, mass, size)
-{
-    this.x     = x;
-    this.y     = y;
-    this.mass  = mass;
-    this.size  = size;
-    this.force = {x: 0, y: 0};
-    this.maxDensityReached = false;
-};
-
-Particle.prototype.destroy = function()
-{
-};
-
-Particle.prototype.computeStagePosition = function()
-{
-    return {x: this.x * this.size, y: this.y * this.size};
-};
-
-Particle.prototype.computeColor = function()
-{
-    if (this.maxDensityReached) return 'rgb(255, 255, 255)';
-
-    // int casting by bit shifting
-    var r = (this.mass * 106) >> 0;
-    var g = (this.mass * 27) >> 0;
-    var b = (this.mass * 224) >> 0;
-
-    r = Math.min(r, 255);
-    g = Math.min(g, 255);
-    b = Math.min(b, 255);
-
-    if (r == 255 && g == 255 && b == 255) this.maxDensityReached = true;
-
-    return 'rgb('+r+','+g+','+b+')';
 };
