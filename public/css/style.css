@@ -13,6 +13,17 @@ body
     height: 100%;
 }
 
+strong
+{
+    font-weight: bold;
+    color: rgb(96, 130, 34);
+}
+a
+{
+    color: rgb(96, 130, 34);
+    text-decoration: underline;
+}
+
 header h1
 {
     margin: 0;
@@ -47,8 +58,33 @@ header,
 }
 #universe
 {
+    position: relative;
     height: 512px;
     border: 1px solid #ccc;
+    overflow: hidden;
+    background: url(../images/noise.jpg) no-repeat;
+}
+#universe .content
+{
+    position: absolute;
+    text-align: left;
+    padding: 20px;
+    top: 0;
+    font-size: 14px;
+}
+#universe .content h2,
+#universe .content h3
+{
+    color: rgb(96, 130, 34);
+    margin: 1em 0;
+}
+#universe .content h3
+{
+    margin: 40px 0 1em 0;
+}
+#universe .content li
+{
+    margin: 10px 0;
 }
 
 #controls-options
@@ -87,11 +123,6 @@ header,
     padding: 4px 0 0 0;
     margin: 0;
     color: rgb(86, 105, 64);
-}
-#log .content p strong
-{
-    font-weight: bold;
-    color: rgb(96, 130, 34);
 }
 
 

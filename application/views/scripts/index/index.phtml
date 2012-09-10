@@ -14,12 +14,48 @@
 </script>
 
 <div id="universe">
+    <div class="content">
+        <h2>How to</h2>
+        <ol>
+            <li>
+                Create noise: creates a random map of the early universe, also kown as the <a href="http://en.wikipedia.org/wiki/Cosmic_microwave_background_radiation" target="_blank">cosmic background radiation</a>.
+            </li>
+            <li>
+                Next frame: pressing this button will compute  a simple <a href="http://en.wikipedia.org/wiki/Gravitational_field" target="_blank">gravitational field</a> for each particle on the map.<br>
+                Every particle will then be moved according to the resulting forces of the fields.
+            </li>
+            <li>
+                Repeat the last step to see how the universe is forming by the forces of gravity...<br>
+            </li>
+        </ol>
+
+        <h3>Background</h3>
+        <ul>
+            <li>
+                The simulation is done under heavy use of the HTML5 <a href="http://www.whatwg.org/specs/web-apps/current-work/multipage/the-canvas-element.html" target="_blank">canvas element</a> and <a href="http://www.whatwg.org/specs/web-apps/current-work/multipage/workers.html" target="_blank">web workers</a>.
+            </li>
+            <li>
+                Browsers that do not support either one of those features will fail to run the simulation.
+            </li>
+            <li>
+                Multithreading support is optimized for up to 8 cores using web workers.
+            </li>
+        </ul>
+
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>
+                This simulation is by no means accurate.<br>
+                Although the basic principles are correct and the resulting structures seem to be familiar.
+            </li>
+        </ul>
+    </div>
 </div>
 <div id="controls">
     <div id="controls-actions">
-        <button name="create-noise" onclick="universe.createNoise()">Create noise</button>
-        <button name="next-frame" onclick="universe.nextFrame()">Next frame</button>
-        <button name="clear" onclick="universe.clear()">Clear</button>
+        <button name="create-noise" onclick="universe.createNoise()">1. Create noise</button>
+        <button name="next-frame" onclick="universe.nextFrame()">2. Next frame</button>
+        <button name="clear" onclick="universe.clear()">3. Clear</button>
     </div>
     <div id="controls-options">
         <h3>Options</h3>

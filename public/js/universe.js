@@ -200,6 +200,9 @@ Universe.prototype.clear = function(suppressLogClearing)
 
     if (!suppressLogClearing)
     {
+        this.universe.find('.content').html('');
+        this.universe.css('background-image', 'none');
+
         clearLog();
         log('Clear.');
     }
