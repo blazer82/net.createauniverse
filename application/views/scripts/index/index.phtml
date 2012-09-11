@@ -9,6 +9,31 @@
         $('#controls [name=resolution]').change(function(){
             universe.init();
         });
+
+        $('button[name=create-noise]').click(function(e) {
+            universe.createNoise()
+        });
+        $('button[name=next-frame]').click(function(e) {
+            universe.nextFrame()
+        });
+        $('button[name=clear]').click(function(e) {
+            universe.clear()
+        });
+
+        $('body').keyup(function(e) {
+            if (e.which == 49)
+            {
+                $('button[name=create-noise]').trigger('click');
+            }
+            else if (e.which == 50)
+            {
+                $('button[name=next-frame]').trigger('click');
+            }
+            else if (e.which == 51)
+            {
+                $('button[name=clear]').trigger('click');
+            }
+        });
     });
 
 </script>
@@ -53,9 +78,9 @@
 </div>
 <div id="controls">
     <div id="controls-actions">
-        <button name="create-noise" onclick="universe.createNoise()">1. Create noise</button>
-        <button name="next-frame" onclick="universe.nextFrame()">2. Next frame</button>
-        <button name="clear" onclick="universe.clear()">3. Clear</button>
+        <button name="create-noise">1. Create noise</button>
+        <button name="next-frame">2. Next frame</button>
+        <button name="clear">3. Clear</button>
     </div>
     <div id="controls-options">
         <h3>Options</h3>

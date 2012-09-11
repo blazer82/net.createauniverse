@@ -98,7 +98,7 @@ self.addEventListener('message', function(e) {
 
                     if (vecLength > gravityRadius) continue;
 
-                    g = particle.mass * gravityFactor * (vecLength / (vecLength*vecLength));
+                    g = gravityFactor * (particle.mass / (vecLength*vecLength));
 
                     affectedCoords = normalizeCoords(rx, ry);
 

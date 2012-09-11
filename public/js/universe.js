@@ -19,6 +19,13 @@ var Universe = function(elementId)
     this.workers = [];
     this.activeWorkers = 0;
 
+    this.frame = 0;
+
+    this.gravityRadius = 16;
+    this.gravityFactor = 1;
+    this.gravityFactorCooling = .2;
+    this.gravityFactorCoolingFrameCap = 3;
+
     log('Context initialized with size '+this.canvas.width+'x'+this.canvas.height);
 
     this.init();
@@ -31,22 +38,16 @@ Universe.prototype.init = function()
     if ($resolution.val() == 'low')
     {
         this.particleSize  = 8;
-        this.gravityRadius = 32;
-        this.gravityFactor = .05;
         this.threads = 4;
     }
     else if ($resolution.val() == 'high')
     {
         this.particleSize  = 2;
-        this.gravityRadius = 32;
-        this.gravityFactor = .05;
         this.threads = 8;
     }
     else
     {
         this.particleSize  = 4;
-        this.gravityRadius = 32;
-        this.gravityFactor = .05;
         this.threads = 8;
     }
 
@@ -90,6 +91,8 @@ Universe.prototype.createNoise = function()
 
         var that = this;
         worker.addEventListener('message', function(e) {
+
+            log('Worker '+ (that.threads -e.data.worker) +' came home.');
 
             var y;
             var x;
@@ -175,6 +178,7 @@ Universe.prototype.render = function()
 
 Universe.prototype.clear = function(suppressLogClearing)
 {
+    this.frame = 0;
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.particles = [];
 
@@ -213,7 +217,14 @@ Universe.prototype.clear = function(suppressLogClearing)
 
 Universe.prototype.cleanUpWorkers = function()
 {
+    var t = this.workers.length;
+    do
+    {
+        this.workers[--t].terminate();
+    } while (t);
+
     this.workers = [];
+
     log('All workers completed.');
 }
 
@@ -246,6 +257,8 @@ Universe.prototype.computeGravitationalField = function(onComplete)
 
         var that = this;
         worker.addEventListener('message', function(e) {
+
+            log('Worker '+ (that.threads -e.data.worker) +' came home.');
 
             // merge fields
             y = that.size.height;
@@ -293,6 +306,11 @@ Universe.prototype.computeGravitationalField = function(onComplete)
 Universe.prototype.nextFrame = function()
 {
     this.enableOptions(['create-noise', 'next-frame', 'clear'], false);
+
+    if (this.frame++ && this.frame <= this.gravityFactorCoolingFrameCap)
+    {
+        this.gravityFactor = this.gravityFactor * this.gravityFactorCooling;
+    }
 
     var that = this;
     this.computeGravitationalField(function(field) {
@@ -344,6 +362,7 @@ Universe.prototype.updateParticlesArray = function()
     var particle;
     var coords;
     var clusterCoords;
+    var proportion;
 
     t = this.threads;
     do
@@ -396,12 +415,18 @@ Universe.prototype.updateParticlesArray = function()
 
                             if (particles[clusterCoords.t][clusterCoords.y][clusterCoords.x].mass > particle.mass)
                             {
-                                particles[clusterCoords.t][clusterCoords.y][clusterCoords.x].mass += particle.mass;
+                                proportion = particle.mass / particles[clusterCoords.t][clusterCoords.y][clusterCoords.x].mass;
+                                particles[clusterCoords.t][clusterCoords.y][clusterCoords.x].mass    += particle.mass;
+                                particles[clusterCoords.t][clusterCoords.y][clusterCoords.x].force.x += particle.force.x * proportion;
+                                particles[clusterCoords.t][clusterCoords.y][clusterCoords.x].force.y += particle.force.y * proportion;
                                 particle.destroy();
                             }
                             else
                             {
-                                particle.mass += particles[clusterCoords.t][clusterCoords.y][clusterCoords.x].mass;
+                                proportion = particles[clusterCoords.t][clusterCoords.y][clusterCoords.x].mass / particle.mass;
+                                particle.mass    += particles[clusterCoords.t][clusterCoords.y][clusterCoords.x].mass;
+                                particle.force.x += particles[clusterCoords.t][clusterCoords.y][clusterCoords.x].force.x * proportion;
+                                particle.force.y += particles[clusterCoords.t][clusterCoords.y][clusterCoords.x].force.y * proportion;
                                 particles[clusterCoords.t][clusterCoords.y][clusterCoords.x].destroy();
                                 particles[clusterCoords.t][clusterCoords.y][clusterCoords.x] = particle;
                             }
