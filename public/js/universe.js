@@ -22,9 +22,9 @@ var Universe = function(elementId)
 
     this.frame = 0;
 
-    this.gravityRadius = 16;
+    this.gravityRadius = 32;
     this.gravityFactor = 1;
-    this.gravityFactorCooling = 1;
+    this.gravityFactorCooling = .5;
     this.gravityFactorCoolingFrameCap = 3;
 
     this.gravityRadiusCoords = [];
@@ -193,23 +193,38 @@ Universe.prototype.render = function()
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     var i = this.particles.length;
+    var particle;
+    var stagePos;
+    var alpha;
+    var gradient;
 
     do
     {
-        var particle = this.particles[--i];
+        particle = this.particles[--i];
 
         if (null == particle) continue;
 
-        var stagePos = this.getStagePosition(particle);
-        var color    = this.getColor(particle);
+        stagePos = this.getStagePosition(particle);
+
+        alpha = particle.mass / 2;
+        this.context.globalAlpha = (alpha > 1) ? 1 : alpha;
+
+        gradient = this.context.createRadialGradient(stagePos.x, stagePos.y, 0, stagePos.x, stagePos.y, this.particleSize);
+        gradient.addColorStop(0, 'rgb(255,255,255)');
+        gradient.addColorStop(1, 'rgb(106,27,224)');
 
         this.context.beginPath();
-        this.context.rect(stagePos.x, stagePos.y, this.particleSize, this.particleSize);
-        this.context.fillStyle = color;
+        this.context.arc(stagePos.x, stagePos.y, this.particleSize, 0, 2 * Math.PI, false);
+        this.context.fillStyle = gradient;
         this.context.fill();
     } while (i);
 
     log('Completed.');
+};
+
+Universe.prototype.getStagePosition = function(particle)
+{
+    return {x: particle.x * this.particleSize + this.particleSize / 2, y: particle.y * this.particleSize + this.particleSize / 2};
 };
 
 Universe.prototype.cleanUpWorkers = function()
@@ -270,29 +285,6 @@ Universe.prototype.getParticlesAt = function(x, y)
     }
 
     return particles;
-};
-
-Universe.prototype.getStagePosition = function(particle)
-{
-    return {x: particle.x * this.particleSize, y: particle.y * this.particleSize};
-};
-
-Universe.prototype.getColor = function(particle)
-{
-    if (particle.maxDensityReached) return 'rgb(255, 255, 255)';
-
-    // int casting by bit shifting
-    var r = (particle.mass * 106) >> 0;
-    var g = (particle.mass * 27) >> 0;
-    var b = (particle.mass * 224) >> 0;
-
-    r = Math.min(r, 255);
-    g = Math.min(g, 255);
-    b = Math.min(b, 255);
-
-    if (r == 255 && g == 255 && b == 255) particle.maxDensityReached = true;
-
-    return 'rgb('+r+','+g+','+b+')';
 };
 
 Universe.prototype.computeGravitationalField = function(onComplete)
