@@ -94,7 +94,7 @@ self.addEventListener('message', function(e) {
                     // faster than Math.abs()
                     absX = (forceVec.x >> 31) ? -forceVec.x : forceVec.x;
                     absY = (forceVec.y >> 31) ? -forceVec.y : forceVec.y;
-                    vecLength = absX + absY;
+                    vecLength = Math.sqrt(absX*absX + absY*absY);
 
                     if (vecLength > gravityRadius) continue;
 
