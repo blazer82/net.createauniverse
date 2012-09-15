@@ -19,11 +19,12 @@ self.addEventListener('message', function(e) {
             //log(mass);
 
             var particle = {
-                x                 : e.data.width.start + x,
-                y                 : e.data.height.start + y,
-                mass              : mass,
-                force             : { x : 0, y : 0},
-                maxDensityReached : false
+                x         : e.data.width.start + x,
+                y         : e.data.height.start + y,
+                mass      : mass,
+                density   : 1,
+                force     : { x : 0, y : 0},
+                superstar : false
             };
 
             particles.push(particle);

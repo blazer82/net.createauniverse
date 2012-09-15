@@ -5,7 +5,6 @@ self.addEventListener('message', function(e) {
     var wrapEdges     = e.data.wrapEdges;
     var particles     = e.data.particles;
     var radiusCoords  = e.data.radiusCoords;
-    var gravityFactor = e.data.gravityFactor;
     var fieldWidth    = e.data.fieldWidth;
     var fieldHeight   = e.data.fieldHeight;
 
@@ -81,7 +80,7 @@ self.addEventListener('message', function(e) {
 
             if (!affectedCoords.altered || wrapEdges)
             {
-                g = gravityFactor * particle.mass / (coords.r * coords.r);
+                g =  particle.mass / (coords.r * coords.r);
 
                 field[affectedCoords.x][affectedCoords.y].x += g * -coords.x;
                 field[affectedCoords.x][affectedCoords.y].y += g * -coords.y;
