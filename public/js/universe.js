@@ -408,8 +408,8 @@ Universe.prototype.nextFrame = function()
 
                         if (null == particle) continue;
 
-                        particle.force.x += particle.mass * field[particle.x][particle.y].x;
-                        particle.force.y += particle.mass * field[particle.x][particle.y].y;
+                        particle.force.x += field[particle.x][particle.y].x;
+                        particle.force.y += field[particle.x][particle.y].y;
 
                         that.applyForce(particle);
 
