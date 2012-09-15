@@ -266,7 +266,14 @@ Universe.prototype.updateParticleIndex = function()
 
         if (null == particle) continue;
 
-        this.particleIndex[particle.x][particle.y].push(i);
+        if (particle.x < 0 || particle.y < 0 || particle.x >= this.size.width || particle.y >= this.size.height)
+        {
+            this.particles[i] = null;
+        }
+        else
+        {
+            this.particleIndex[particle.x][particle.y].push(i);
+        }
 
     } while (i);
 };
@@ -408,17 +415,10 @@ Universe.prototype.nextFrame = function()
 
                         normalizedCoords = that.normalizeCoords(particle.x, particle.y);
 
-                        if (normalizedCoords.altered)
+                        if (normalizedCoords.altered && wrapEdges)
                         {
-                            if (!wrapEdges)
-                            {
-                                particle = null;
-                            }
-                            else
-                            {
-                                particle.x = normalizedCoords.x;
-                                particle.y = normalizedCoords.y;
-                            }
+                            particle.x = normalizedCoords.x;
+                            particle.y = normalizedCoords.y;
                         }
 
                     } while (p);
