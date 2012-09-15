@@ -4,7 +4,7 @@ self.addEventListener('message', function(e) {
 
     var wrapEdges     = e.data.wrapEdges;
     var particles     = e.data.particles;
-    var gravityRadius = e.data.gravityRadius;
+    var radiusCoords  = e.data.radiusCoords;
     var gravityFactor = e.data.gravityFactor;
     var fieldWidth    = e.data.fieldWidth;
     var fieldHeight   = e.data.fieldHeight;
@@ -42,75 +42,52 @@ self.addEventListener('message', function(e) {
 
     var x;
     var y;
-    var rx;
-    var ry;
     var g;
+    var rc;
+    var coords;
     var particle;
-    var forceVec;
-    var vecLength;
     var affectedCoords;
 
-    var absX;
-    var absY;
-
-    y = fieldHeight;
+    x = fieldWidth;
     do
     {
-        field[--y] = [];
+        field[--x] = [];
 
-        x = fieldWidth;
+        y = fieldHeight;
         do
         {
-            field[y][--x] = {
+            field[x][--y] = {
                 x: 0.0,
                 y: 0.0
             };
-        } while (x);
-    } while (y);
+        } while (y);
+    } while (x);
 
 
-    y = e.data.height.length;
+    var i = particles.length;
+
     do
     {
-        --y;
-        x = e.data.width.length;
+        particle = particles[--i];
+
+        if (null == particle) continue;
+
+        rc = radiusCoords.length;
         do
         {
-            particle = particles[y][--x];
+            coords = radiusCoords[--rc];
 
-            if (!particle) continue;
+            affectedCoords = normalizeCoords(particle.x + coords.x, particle.y + coords.y);
 
-            for (ry = particle.y-gravityRadius; ry <= particle.y+gravityRadius; ry++)
+            if (!affectedCoords.altered || wrapEdges)
             {
-                for (rx = particle.x-gravityRadius; rx <= particle.x+gravityRadius; rx++)
-                {
-                    forceVec = {
-                        x: particle.x - rx,
-                        y: particle.y - ry
-                    };
+                g = gravityFactor * particle.mass / (coords.r * coords.r);
 
-                    if (forceVec.x == 0 && forceVec.y == 0) continue;
-
-                    // faster than Math.abs()
-                    absX = (forceVec.x >> 31) ? -forceVec.x : forceVec.x;
-                    absY = (forceVec.y >> 31) ? -forceVec.y : forceVec.y;
-                    vecLength = Math.sqrt(absX*absX + absY*absY);
-
-                    if (vecLength > gravityRadius) continue;
-
-                    g = gravityFactor * (particle.mass / (vecLength*vecLength));
-
-                    affectedCoords = normalizeCoords(rx, ry);
-
-                    if (!affectedCoords.altered || wrapEdges)
-                    {
-                        field[affectedCoords.y][affectedCoords.x].x += forceVec.x * g;
-                        field[affectedCoords.y][affectedCoords.x].y += forceVec.y * g;
-                    }
-                }
+                field[affectedCoords.x][affectedCoords.y].x += g * -coords.x;
+                field[affectedCoords.x][affectedCoords.y].y += g * -coords.y;
             }
-        } while (x);
-    } while (y);
+        } while (rc);
+    } while (i);
 
     self.postMessage({
         worker : e.data.worker,

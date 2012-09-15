@@ -94,6 +94,9 @@
                             <option value="high">high</option>
                             <option value="medium" selected="selected">medium</option>
                             <option value="low">low</option>
+                            <?php if ('production' != APPLICATION_ENV): ?>
+                                <option value="debug">debug</option>
+                            <?php endif; ?>
                         </select>
                     </td>
                 </tr>

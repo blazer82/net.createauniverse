@@ -1,29 +1,34 @@
 self.addEventListener('message', function(e) {
 
-    importScripts('../perlin-noise-simplex.js', '../noise.js', '../particle.js');
+    importScripts('../perlin-noise-simplex.js', '../noise.js');
 
     var x;
     var y;
     var noise  = new Noise();
     var particles = [];
 
-    y = e.data.height.length;
+    x = e.data.width.length;
     do
     {
-        particles[--y] = [];
-
-        x = e.data.width.length;
+        --x;
+        y = e.data.height.length;
         do
         {
-            var mass = Math.abs(noise.smoothedNoise(--x, y));
+            var mass = Math.abs(noise.smoothedNoise(x, --y));
 
             //log(mass);
 
-            var particle = new Particle(x + e.data.width.start, y + e.data.height.start, mass, e.data.particleSize);
+            var particle = {
+                x                 : e.data.width.start + x,
+                y                 : e.data.height.start + y,
+                mass              : mass,
+                force             : { x : 0, y : 0},
+                maxDensityReached : false
+            };
 
-            particles[y][x] = particle;
-        } while (x);
-    } while (y);
+            particles.push(particle);
+        } while (y);
+    } while (x);
 
     self.postMessage({
         worker : e.data.worker,
