@@ -277,20 +277,14 @@ Universe.prototype.render = function()
             color       = this.getColor(particle);
 
             radius      = this.particleSize * 2;
-            innerRadius = 0;
-            alpha       = .5
+            innerRadius = this.particleSize;
+            alpha       = 1
 
             this.context.globalAlpha = alpha;
 
-            /*gradient = this.context.createLinearGradient(stagePos.x - this.particleSize, stagePos.y, stagePos.x + this.particleSize, stagePos.y);
-            gradient.addColorStop(0, 'rgb(0,0,0)');
-            gradient.addColorStop(.5, color);
-            gradient.addColorStop(1, 'rgb(0,0,0)');*/
-
             gradient = this.context.createRadialGradient(stagePos.x, stagePos.y, innerRadius, stagePos.x, stagePos.y, radius);
-            gradient.addColorStop(0, 'rgb(255,255,255)');
-            gradient.addColorStop(.5, color);
-            gradient.addColorStop(1, 'rgb(0,0,0)');
+            gradient.addColorStop(0, 'rgba(255,255,255,1)');
+            gradient.addColorStop(1, 'rgba(0,0,0,0)');
 
             this.context.beginPath();
             this.context.arc(stagePos.x, stagePos.y, radius, 0, 2 * Math.PI, false);
