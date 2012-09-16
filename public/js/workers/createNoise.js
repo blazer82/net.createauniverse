@@ -24,6 +24,7 @@ self.addEventListener('message', function(e) {
                 mass      : mass,
                 density   : 1,
                 force     : { x : 0, y : 0},
+                rendering : {},
                 superstar : false
             };
 

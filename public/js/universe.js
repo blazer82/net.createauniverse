@@ -138,7 +138,7 @@ Universe.prototype.createNoise = function()
 
     this.clear();
 
-    this.enableOptions(['create-noise', 'next-frame', 'clear'], false);
+    this.enableOptions(['create-noise', 'next-frame', 'clear', 'resolution'], false);
 
     var t = this.threads;
     do
@@ -169,9 +169,6 @@ Universe.prototype.createNoise = function()
                 that.updateParticleIndex();
 
                 that.render();
-
-                that.enableOptions(['create-noise', 'next-frame', 'clear'], true);
-                that.enableOptions(['resolution'], false);
             }
 
         }, false);
@@ -191,146 +188,147 @@ Universe.prototype.createNoise = function()
 
 Universe.prototype.render = function()
 {
-    log('Rendering particles...');
-
-    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
     var i;
-    var s;
-    var particle;
-    var stagePos;
-    var alpha;
-    var color;
-    var radius;
-    var innerRadius;
-    var outerRadius;
     var gradient;
+    var particle;
+    var radius;
 
-    // render gloom
-    i = this.particles.length;
+    var arc = 2 * Math.PI;
+
+    var t = this.threads;
     do
     {
-        particle = this.particles[--i];
+        --t;
+        var worker = new Worker('js/workers/prepareRendering.js');
 
-        if (null == particle) continue;
+        worker.addEventListener('error', this.workerErrorHandler, false);
 
-        stagePos    = this.getStagePosition(particle);
+        var that = this;
+        worker.addEventListener('message', function(e) {
 
-        radius      = this.particleSize;
-        outerRadius = radius * 10;
-        alpha       = ((particle.mass / 2) % 1) / 8;
+            log('Worker '+ (that.threads -e.data.worker) +' done.');
 
-        this.context.globalAlpha = alpha;
+            i = that.clusterSize;
+            do
+            {
+                --i;
+                that.particles[that.clusters[e.data.worker] + i] = e.data.data[i];
+            } while (i);
 
-        gradient = this.context.createRadialGradient(stagePos.x, stagePos.y, radius, stagePos.x, stagePos.y, outerRadius);
-        gradient.addColorStop(0, 'rgba(86,27,255,1)');
-        gradient.addColorStop(1, 'rgba(0,0,0,0)');
+            --that.activeWorkers;
 
-        this.context.beginPath();
-        this.context.arc(stagePos.x, stagePos.y, outerRadius, 0, 2 * Math.PI, false);
-        this.context.fillStyle = gradient;
-        this.context.fill();
+            if (!that.activeWorkers)
+            {
+                that.cleanUpWorkers();
 
-    } while (i);
+                that.context.clearRect(0, 0, that.canvas.width, that.canvas.height);
 
-    // render particles
-    i = this.particles.length;
-    do
-    {
-        particle = this.particles[--i];
+                // render gloom
+                i = that.particles.length;
+                do
+                {
+                    particle = that.particles[--i];
 
-        if (null == particle || particle.superstar) continue;
+                    if (null == particle) continue;
 
-        stagePos    = this.getStagePosition(particle);
-        color       = this.getColor(particle);
+                    that.context.globalAlpha = particle.rendering.gloomAlpha;
 
-        radius      = this.particleSize;
-        innerRadius = 0;
-        alpha       = (particle.mass / 2) % 1;
+                    gradient = that.context.createRadialGradient(
+                        particle.rendering.stagePosition.x,
+                        particle.rendering.stagePosition.y,
+                        particle.rendering.gloomInnerRadius,
+                        particle.rendering.stagePosition.x,
+                        particle.rendering.stagePosition.y,
+                        particle.rendering.gloomOuterRadius
+                    );
+                    gradient.addColorStop(0, particle.rendering.gloomColor);
+                    gradient.addColorStop(1, 'rgba(0,0,0,0)');
 
-        this.context.globalAlpha = alpha;
+                    that.context.beginPath();
+                    that.context.arc(particle.rendering.stagePosition.x, particle.rendering.stagePosition.y, particle.rendering.gloomOuterRadius, 0, arc, false);
+                    that.context.fillStyle = gradient;
+                    that.context.fill();
 
-        gradient = this.context.createRadialGradient(stagePos.x, stagePos.y, innerRadius, stagePos.x, stagePos.y, radius);
-        gradient.addColorStop(0, 'rgba(255,255,255,1)');
-        gradient.addColorStop(.5, color);
-        gradient.addColorStop(1, 'rgba(0,0,0,0)');
+                } while (i);
 
-        this.context.beginPath();
-        this.context.arc(stagePos.x, stagePos.y, radius, 0, 2 * Math.PI, false);
-        this.context.fillStyle = gradient;
-        this.context.fill();
+                // render particles
+                i = that.particles.length;
+                do
+                {
+                    particle = that.particles[--i];
 
-    } while (i);
+                    if (null == particle || particle.superstar) continue;
 
-    // render superstars
-    s = this.superstars.length;
-    if (s > 0)
-    {
-        do
-        {
-            particle = this.particles[this.superstars[--s]];
+                    that.context.globalAlpha = particle.rendering.alpha;
 
-            if (null == particle) continue;
+                    gradient = that.context.createRadialGradient(
+                        particle.rendering.stagePosition.x,
+                        particle.rendering.stagePosition.y,
+                        particle.rendering.innerRadius,
+                        particle.rendering.stagePosition.x,
+                        particle.rendering.stagePosition.y,
+                        particle.rendering.outerRadius
+                    );
+                    gradient.addColorStop(0, 'rgba(255,255,255,1)');
+                    gradient.addColorStop(.5, particle.rendering.color);
+                    gradient.addColorStop(1, 'rgba(0,0,0,0)');
 
-            stagePos    = this.getStagePosition(particle);
-            color       = this.getColor(particle);
+                    that.context.beginPath();
+                    that.context.arc(particle.rendering.stagePosition.x, particle.rendering.stagePosition.y, particle.rendering.outerRadius, 0, arc, false);
+                    that.context.fillStyle = gradient;
+                    that.context.fill();
 
-            radius      = this.particleSize * 2;
-            innerRadius = this.particleSize;
-            alpha       = 1
+                } while (i);
 
-            this.context.globalAlpha = alpha;
+                // render superstars
+                s = that.superstars.length;
+                if (s > 0)
+                {
+                    do
+                    {
+                        particle = that.particles[that.superstars[--s]];
 
-            gradient = this.context.createRadialGradient(stagePos.x, stagePos.y, innerRadius, stagePos.x, stagePos.y, radius);
-            gradient.addColorStop(0, 'rgba(255,255,255,1)');
-            gradient.addColorStop(1, 'rgba(0,0,0,0)');
+                        if (null == particle) continue;
 
-            this.context.beginPath();
-            this.context.arc(stagePos.x, stagePos.y, radius, 0, 2 * Math.PI, false);
-            this.context.fillStyle = gradient;
-            this.context.fill();
+                        radius = particle.rendering.outerRadius * 2;
 
-        } while (s);
-    }
+                        that.context.globalAlpha = 1;
 
-    log('Completed.');
-};
+                        gradient = that.context.createRadialGradient(
+                            particle.rendering.stagePosition.x,
+                            particle.rendering.stagePosition.y,
+                            particle.rendering.outerRadius,
+                            particle.rendering.stagePosition.x,
+                            particle.rendering.stagePosition.y,
+                            radius
+                        );
+                        gradient.addColorStop(0, 'rgba(255,255,255,1)');
+                        gradient.addColorStop(1, 'rgba(0,0,0,0)');
 
-Universe.prototype.getStagePosition = function(particle)
-{
-    return {x: particle.x * this.particleSize + this.particleSize / 2, y: particle.y * this.particleSize + this.particleSize / 2};
-};
+                        that.context.beginPath();
+                        that.context.arc(particle.rendering.stagePosition.x, particle.rendering.stagePosition.y, radius, 0, arc, false);
+                        that.context.fillStyle = gradient;
+                        that.context.fill();
 
-Universe.prototype.getColor = function(particle)
-{
-    var r;
-    var g;
-    var b;
-    var factor = particle.mass < 1 ? 1 : particle.mass;
+                    } while (s);
+                }
 
-    if (particle.superstar)
-    {
-        r = 106;
-        g = 224;
-        b = 27;
-    }
-    else
-    {
-        r = 106 * particle.density;
-        g = 27 * particle.density;
-        b = 224 * particle.density;
-    }
+                that.enableOptions(['create-noise', 'next-frame', 'clear'], true);
+            }
 
-    // int casting by bit shifting
-    r = (factor * r) >> 0;
-    g = (factor * g) >> 0;
-    b = (factor * b) >> 0;
+        }, false);
 
-    r = Math.min(r, 255);
-    g = Math.min(g, 255);
-    b = Math.min(b, 255);
+        this.workers[t] = worker;
+        this.activeWorkers++;
 
-    return 'rgba('+r+','+g+','+b+',1)';
+        log('Prepare rendering: worker '+ (this.threads -t) +'...');
+        worker.postMessage({
+            worker       : t,
+            particleSize : this.particleSize,
+            particles    : this.particles.slice(this.clusters[t], this.clusters[t] + this.clusterSize)
+        });
+
+    } while (t);
 };
 
 Universe.prototype.cleanUpWorkers = function()
@@ -344,7 +342,7 @@ Universe.prototype.cleanUpWorkers = function()
     this.workers = [];
 
     log('All workers completed.');
-}
+};
 
 Universe.prototype.updateParticleIndex = function()
 {
@@ -414,6 +412,7 @@ Universe.prototype.mergeParticles = function()
                     mass      : 0,
                     density   : 1,
                     force     : { x : 0, y : 0},
+                    rendering : {},
                     superstar : 1
                 };
 
