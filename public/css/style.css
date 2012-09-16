@@ -137,3 +137,7 @@ footer p
     padding: 0;
     text-align: center;
 }
+footer a
+{
+    color: #ddd;
+}
