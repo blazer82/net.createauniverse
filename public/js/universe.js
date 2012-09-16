@@ -24,9 +24,6 @@ var Universe = function(elementId)
     this.frame = 0;
 
     this.gravityRadius = 32;
-    this.gravityFactor = .6;
-    this.gravityFactorCooling = .5;
-    this.gravityFactorCoolingFrameCap = 5;
 
     this.gravityRadiusCoords = [];
 
@@ -41,6 +38,11 @@ Universe.prototype.clear = function(suppressLogClearing)
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.particles = [];
     this.particleIndex = [];
+    this.superstars = [];
+
+    this.gravityFactor = .6;
+    this.gravityFactorCooling = .5;
+    this.gravityFactorCoolingFrameCap = 5;
 
     var i = this.size.width * this.size.height;
 
@@ -201,8 +203,38 @@ Universe.prototype.render = function()
     var color;
     var radius;
     var innerRadius;
+    var outerRadius;
     var gradient;
 
+    // render gloom
+    i = this.particles.length;
+    do
+    {
+        particle = this.particles[--i];
+
+        if (null == particle || particle.superstar) continue;
+
+        stagePos    = this.getStagePosition(particle);
+        color       = this.getColor(particle);
+
+        radius      = this.particleSize;
+        outerRadius = radius * 10;
+        alpha       = (particle.mass / 2) % 1;
+
+        this.context.globalAlpha = alpha / 16;
+
+        gradient = this.context.createRadialGradient(stagePos.x, stagePos.y, radius, stagePos.x, stagePos.y, outerRadius);
+        gradient.addColorStop(0, 'rgba(86,27,255,1)');
+        gradient.addColorStop(1, 'rgba(0,0,0,0)');
+
+        this.context.beginPath();
+        this.context.arc(stagePos.x, stagePos.y, outerRadius, 0, 2 * Math.PI, false);
+        this.context.fillStyle = gradient;
+        this.context.fill();
+
+    } while (i);
+
+    // render particles
     i = this.particles.length;
     do
     {
@@ -220,15 +252,18 @@ Universe.prototype.render = function()
         this.context.globalAlpha = alpha;
 
         gradient = this.context.createRadialGradient(stagePos.x, stagePos.y, innerRadius, stagePos.x, stagePos.y, radius);
-        gradient.addColorStop(0, 'rgb(255,255,255)');
-        gradient.addColorStop(1, color);
+        gradient.addColorStop(0, 'rgba(255,255,255,1)');
+        gradient.addColorStop(.5, color);
+        gradient.addColorStop(1, 'rgba(0,0,0,0)');
 
         this.context.beginPath();
         this.context.arc(stagePos.x, stagePos.y, radius, 0, 2 * Math.PI, false);
         this.context.fillStyle = gradient;
         this.context.fill();
+
     } while (i);
 
+    // render superstars
     s = this.superstars.length;
     if (s > 0)
     {
@@ -242,14 +277,20 @@ Universe.prototype.render = function()
             color       = this.getColor(particle);
 
             radius      = this.particleSize * 2;
-            innerRadius = this.particleSize;
-            alpha       = 1
+            innerRadius = 0;
+            alpha       = .5
 
             this.context.globalAlpha = alpha;
 
+            /*gradient = this.context.createLinearGradient(stagePos.x - this.particleSize, stagePos.y, stagePos.x + this.particleSize, stagePos.y);
+            gradient.addColorStop(0, 'rgb(0,0,0)');
+            gradient.addColorStop(.5, color);
+            gradient.addColorStop(1, 'rgb(0,0,0)');*/
+
             gradient = this.context.createRadialGradient(stagePos.x, stagePos.y, innerRadius, stagePos.x, stagePos.y, radius);
             gradient.addColorStop(0, 'rgb(255,255,255)');
-            gradient.addColorStop(1, color);
+            gradient.addColorStop(.5, color);
+            gradient.addColorStop(1, 'rgb(0,0,0)');
 
             this.context.beginPath();
             this.context.arc(stagePos.x, stagePos.y, radius, 0, 2 * Math.PI, false);
@@ -296,7 +337,7 @@ Universe.prototype.getColor = function(particle)
     g = Math.min(g, 255);
     b = Math.min(b, 255);
 
-    return 'rgb('+r+','+g+','+b+')';
+    return 'rgba('+r+','+g+','+b+',1)';
 };
 
 Universe.prototype.cleanUpWorkers = function()
