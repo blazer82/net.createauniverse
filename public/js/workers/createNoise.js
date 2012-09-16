@@ -1,6 +1,6 @@
 self.addEventListener('message', function(e) {
 
-    importScripts('../perlin-noise-simplex.js', '../noise.js');
+    importScripts('../lib/perlin-noise-simplex.js', '../noise.js');
 
     var x;
     var y;
