@@ -40,6 +40,11 @@ header h1
     min-height: 1100px;
 }
 
+#content
+{
+    position: relative;
+}
+
 header,
 footer,
 #content,
@@ -85,6 +90,21 @@ header,
 #universe .content li
 {
     margin: 10px 0;
+}
+
+#framebuffer
+{
+    position: absolute;
+    top: 0;
+    right: -150px;
+    width: 140px;
+    height: 512px;
+    border: 1px solid #ccc;
+}
+#framebuffer img
+{
+    width: 120px;
+    margin: 10px;
 }
 
 #controls-options

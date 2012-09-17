@@ -314,6 +314,8 @@ Universe.prototype.render = function()
                 }
 
                 that.enableOptions(['create-noise', 'next-frame', 'clear'], true);
+
+                $('#framebuffer').append('<img src="'+that.canvas.toDataURL()+'" alt="">');
             }
 
         }, false);
